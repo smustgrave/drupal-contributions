@@ -1,0 +1,53 @@
+config:
+  xdebug: "debug,develop"
+  config:
+    php: ./lando-src/php.ini
+  composer_version: 2-latest
+
+services:
+  appserver:
+    build_as_root:
+      - npm install -g npm@latest
+      - npm install gulp-cli gulp -g
+      - wget https://robo.li/robo.phar
+      - chmod +x robo.phar && mv robo.phar /usr/bin/robo
+    build:
+      - /usr/local/bin/composer global require --dev drupal/coder
+  #      - /usr/local/bin/composer global require dealerdirect/phpcodesniffer-composer-installer
+  #      - /app/vendor/bin/phpcs --config-set installed_paths /app/vendor/drupal/coder/coder_sniffer
+  database:
+    portforward: 3307
+
+tooling:
+  robo:
+    service: appserver
+    description: Runs <robo> commmands
+    cmd: robo
+
+  npm:
+    service: appserver
+
+  node:
+    service: appserver
+
+  gulp:
+    service: appserver
+
+  xdebug-on:
+    service: appserver
+    description: Enable xdebug
+    cmd: "docker-php-ext-enable xdebug &&  pkill -o -USR2 php-fpm"
+    user: root
+
+  xdebug-off:
+    service: appserver
+    description: Disable xdebug
+    cmd: "rm /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini &&  pkill -o -USR2 php-fpm"
+    user: root
+
+events:
+  #  pre-rebuild:
+  #    - rm -rfv web
+  #    - appserver: php /app/scripts/get-drupal.php
+  post-rebuild:
+    - appserver: /app/scripts/rebuild.sh
